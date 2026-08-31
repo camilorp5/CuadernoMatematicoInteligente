@@ -1,29 +1,41 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import * as ort from 'onnxruntime-web';
+
+type OrtModule = typeof import('onnxruntime-web');
 
 export default function MnistPhase() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [session, setSession] = useState<ort.InferenceSession | null>(null);
+  const [ort, setOrt] = useState<OrtModule | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [probabilities, setProbabilities] = useState<number[]>(Array(10).fill(0));
   const [predictedDigit, setPredictedDigit] = useState<number | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     async function loadModel() {
       try {
-        const sess = await ort.InferenceSession.create('/mnist_cnn.onnx');
+        const ortModule = await import('onnxruntime-web');
+        if (!active) return;
+
+        setOrt(ortModule);
+        const sess = await ortModule.InferenceSession.create('/mnist_cnn.onnx');
         setSession(sess);
       } catch (e) {
-        console.error("Error al cargar el modelo ONNX:", e);
+        console.error('Error al cargar el modelo ONNX:', e);
       }
     }
+
     loadModel();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const runInference = async () => {
-    if (!session || !canvasRef.current) return;
+    if (!session || !canvasRef.current || !ort) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -41,7 +53,7 @@ export default function MnistPhase() {
 
     const float32Data = new Float32Array(28 * 28);
     for (let i = 0; i < data.length; i += 4) {
-      const avg = data[i] / 255.0; 
+      const avg = data[i] / 255.0;
       const normalized = (avg - 0.1307) / 0.3081;
       float32Data[i / 4] = normalized;
     }
@@ -52,14 +64,14 @@ export default function MnistPhase() {
       const outputMap = await session.run({ [session.inputNames[0]]: inputTensor });
       const outputData = outputMap[session.outputNames[0]].data as Float32Array;
 
-      const expValues = Array.from(outputData).map(val => Math.exp(val));
+      const expValues = Array.from(outputData).map((val) => Math.exp(val));
       const sumExp = expValues.reduce((a, b) => a + b, 0);
-      const softmaxProbs = expValues.map(v => v / sumExp);
+      const softmaxProbs = expValues.map((v) => v / sumExp);
 
       setProbabilities(softmaxProbs);
       setPredictedDigit(softmaxProbs.indexOf(Math.max(...softmaxProbs)));
     } catch (err) {
-      console.error("Error durante inferencia:", err);
+      console.error('Error durante inferencia:', err);
     }
   };
 

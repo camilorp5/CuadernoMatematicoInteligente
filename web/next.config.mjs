@@ -5,17 +5,10 @@ const nextConfig = {
     unoptimized: true,
   },
   webpack: (config, { isServer }) => {
-    // Ignorar bindings nativos de Node.js en ONNX Runtime
     config.resolve.alias = {
       ...config.resolve.alias,
       'onnxruntime-node$': false,
     };
-
-    // Ignorar archivos .node y scripts de Node dentro del bundle web
-    config.module.rules.push({
-      test: /\.node$/,
-      use: 'null-loader',
-    });
 
     if (!isServer) {
       config.resolve.fallback = {
@@ -25,6 +18,24 @@ const nextConfig = {
         crypto: false,
       };
     }
+
+    config.module.rules.push({
+      test: /ort\.node\.min\.(mjs|js)$/,
+      loader: 'null-loader',
+    });
+
+    config.optimization = {
+      ...config.optimization,
+      minimizer: (config.optimization?.minimizer ?? []).map((plugin) => {
+        if (plugin && typeof plugin === 'object' && 'options' in plugin) {
+          plugin.options = {
+            ...plugin.options,
+            exclude: /ort\.bundle\.min\./i,
+          };
+        }
+        return plugin;
+      }),
+    };
 
     return config;
   },
