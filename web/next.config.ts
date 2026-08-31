@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // Genera HTML/CSS/JS estático sin servidor Node
+  output: 'export',
+  // Requerido si despliegas en un repositorio de usuario/proyecto (ej. usuario.github.io/nombre-repo)
+  // basePath: '/nombre-de-tu-repositorio', 
   images: {
-    unoptimized: true, // Requerido para Next/Image en exportación estática
+    unoptimized: true, // GitHub Pages no soporta la optimización por servidor de Next Image
   },
-  // Si tu repo en GitHub no es username.github.io, sino username.github.io/smart-math-v1:
-  // basePath: '/smart-math-v1',
 };
 
-export default nextConfig;
+module.exports = nextConfig;

@@ -1,0 +1,77 @@
+¡Tiene muchísimo más sentido! Lo que quieres construir no es un reconocedor de fotos estáticas (*Offline Recognition*), sino un **sistema interactivo en tiempo real (*Online Recognition*)**, muy al estilo de apps como GoodNotes, Notability o la calculadora de Apple en iPad.
+
+En este tipo de aplicaciones no se procesan solo píxeles; se procesan **trazos (strokes)**: secuencias de coordenadas $(x, y)$ a medida que el usuario mueve el lápiz o el dedo, junto con eventos de control (escribir `=`, escribir la palabra `"explicación"`, etc.).
+
+Desglosando el camino en miniproyectos más pequeños, atómicos y perfectos para publicar progresivamente en LinkedIn, esta sería la hoja de ruta:
+
+---
+
+### **Fase 2: Ampliación del Vocabulario (Multiclase con Símbolos Matemáticos)**
+
+Antes de meter coordenadas en tiempo real, tu clasificador necesita entender más que números.
+
+* **El objetivo:** Pasar de 10 clases (0-9 de MNIST) a más de 50 clases (dígitos, letras $x, y, z$, operadores $+,-,\times,\div$, integrales $\int$, símbolos como $\pi$).
+* **Dataset:** HASYv2 o *Handwritten Math Symbols* de Kaggle.
+* **Entregable para LinkedIn:** Un modelo CNN robusto con métricas de precisión por clase, matriz de confusión extensa y exportación a ONNX.
+
+---
+
+### **Fase 3: Captura de Trazos y Segmentación por Tiempo/Espacio (Canvas Interactivo)**
+
+Aquí dejas atrás las fotos y empiezas a capturar lo que el usuario escribe en vivo.
+
+* **El objetivo:** Crear un Canvas gráfico (en web con React/HTML5 Canvas o una app de escritorio) que registre los trazos en tiempo real.
+* **La lógica:** Cuando el usuario deja de escribir por unos milisegundos, el sistema agrupa los trazos cercanos (*Bounding Boxes* por continuidad espacial y temporal) y extrae los caracteres aislados para pasárselos al modelo de la Fase 2.
+* **Entregable para LinkedIn:** Un video mostrando cómo escribes en una pantalla, la app dibuja recuadros alrededor de cada símbolo y los reconoce al instante.
+
+---
+
+### **Fase 4: Parsing Espacial y Transcripción a LaTeX en Tiempo Real**
+
+Un `2`, un `+` y un `5` en línea recta son fáciles de unir, pero si escribes una fracción ($\frac{a}{b}$) o una potencia ($x^2$), la posición espacial importa.
+
+* **El objetivo:** Convertir los símbolos reconocidos y sus posiciones relativas en una sintaxis matemática estructurada (cadena LaTeX).
+* **Técnica:** Algoritmos de relación espacial (arriba de, superíndice, subíndice) o un modelo liviano secuencia a secuencia (RNN/Transformer para trazos tipo InkML).
+* **Entregable para LinkedIn:** Escribir a mano una expresión compleja en el canvas y ver cómo se renderiza automáticamente a LaTeX perfecto (ej. `\int x^2 dx`).
+
+---
+
+### **Fase 5: Motor de Cálculo y Detección de Disparadores ("Triggers")**
+
+Aquí le das vida a la lógica de la calculadora.
+
+* **El objetivo:** Implementar la detección de eventos cuando el usuario escribe ciertas claves en el canvas.
+* Si el usuario escribe **`=`**, el sistema evalúa la expresión con un motor como **SymPy** y renderiza el resultado exacto (número, matriz o solución de la integral).
+* Si el usuario escribe **`explicación`** o hace un gesto de pregunta **`?`**, se activa el pipeline de IA generativa.
+
+
+* **Entregable para LinkedIn:** Demostración de la calculadora resolviendo integrales y derivadas automáticamente al dibujar el símbolo `=`.
+
+---
+
+### **Fase 6: Integración con LLM (Agente Pedagógico)**
+
+* **El objetivo:** Tomar la expresión en LaTeX y el resultado de SymPy, y enviárselos a la API de un LLM (como Gemini) con un prompt del sistema optimizado para desglosar el problema paso a paso como un tutor de matemáticas.
+* **Entregable para LinkedIn:** Mostrar cómo el backend recibe la ecuación LaTeX y devuelve el desglose lógico formateado.
+
+---
+
+### **Fase 7: Motor de Generación de Trazos Sintéticos (Handwriting Synthesis)**
+
+El toque maestro: que la explicación no aparezca como texto plano de computadora, sino dibujándose como si la IA tuviera su propio lápiz.
+
+* **El objetivo:** Convertir el texto explicativo de la IA en trazos $SVG$/vectoriales sintéticos que imiten la escritura a mano en tiempo real.
+* **Técnica:** Se puede implementar mediante renderizado dinámico de fuentes vectoriales manuscritas con variaciones geométricas aleatorias en el trazo, o un modelo recurrente/generativo de trazado (tipo *Alex Graves Handwriting Synthesis*).
+* **Entregable para LinkedIn:** El video final del proyecto completo funcionando de principio a fin.
+
+---
+
+### Tu próximo paso directo: **Fase 2**
+
+Para empezar ya mismo con la **Fase 2**, el foco es:
+
+1. Descargar el dataset de símbolos matemáticos manuscritos.
+2. Adaptar tu arquitectura de PyTorch (la que documentamos en MNIST) para soportar más clases.
+3. Entrenar, evaluar y exportar a ONNX.
+
+¿Te gustaría que preparemos la estructura del proyecto o el script de carga de datos para este dataset de símbolos extendido?
