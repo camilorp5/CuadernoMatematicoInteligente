@@ -20,8 +20,11 @@ export default function MnistPhase() {
         const ortModule = await import('onnxruntime-web');
         if (!active) return;
 
+        // Configurar la ruta pública CDN para cargar los binaries de WebAssembly
+        ortModule.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+
         setOrt(ortModule);
-        const sess = await ortModule.InferenceSession.create('/mnist_cnn.onnx');
+        const sess = await ortModule.InferenceSession.create('/models/mnist_cnn.onnx');
         setSession(sess);
       } catch (e) {
         console.error('Error al cargar el modelo ONNX:', e);
