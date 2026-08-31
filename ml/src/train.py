@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
+
+
 import torchvision
 import torchvision.transforms as transforms
 import mlflow
@@ -13,6 +15,7 @@ import mlflow.pytorch
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
+
 
 # Bypass de SSL para macOS
 ssl._create_default_https_context = ssl._create_unverified_context
