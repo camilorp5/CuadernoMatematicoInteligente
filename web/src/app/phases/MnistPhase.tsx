@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 type OrtModule = typeof import('onnxruntime-web');
 
@@ -12,6 +12,20 @@ export default function MnistPhase() {
   const [predictedDigit, setPredictedDigit] = useState<number | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  // 1. Inicializar el canvas con fondo negro para evitar transparencias (Alpha = 0)
+  const clearCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setProbabilities(Array(10).fill(0));
+    setPredictedDigit(null);
+  }, []);
+
+  // 2. Carga dinámica del modelo ONNX
   useEffect(() => {
     let active = true;
 
@@ -20,30 +34,31 @@ export default function MnistPhase() {
         const ortModule = await import('onnxruntime-web');
         if (!active) return;
 
-        // Configurar la ruta pública CDN para cargar los binaries de WebAssembly
         ortModule.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
 
         setOrt(ortModule);
         const sess = await ortModule.InferenceSession.create('/models/mnist_cnn.onnx');
-        setSession(sess);
+        if (active) setSession(sess);
       } catch (e) {
         console.error('Error al cargar el modelo ONNX:', e);
       }
     }
 
     loadModel();
+    clearCanvas();
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [clearCanvas]);
 
-  const runInference = async () => {
+  // 3. Procesamiento de imagen e Inferencia
+  const runInference = useCallback(async () => {
     if (!session || !canvasRef.current || !ort) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
+    
+    // Canvas temporal para escalar de 280x280 a 28x28
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = 28;
     tempCanvas.height = 28;
@@ -54,9 +69,10 @@ export default function MnistPhase() {
     const imgData = tempCtx.getImageData(0, 0, 28, 28);
     const data = imgData.data;
 
+    // Normalización estándar MNIST: (x / 255.0 - mean) / std
     const float32Data = new Float32Array(28 * 28);
     for (let i = 0; i < data.length; i += 4) {
-      const avg = data[i] / 255.0;
+      const avg = data[i] / 255.0; // Canal Rojo
       const normalized = (avg - 0.1307) / 0.3081;
       float32Data[i / 4] = normalized;
     }
@@ -67,6 +83,7 @@ export default function MnistPhase() {
       const outputMap = await session.run({ [session.inputNames[0]]: inputTensor });
       const outputData = outputMap[session.outputNames[0]].data as Float32Array;
 
+      // Softmax para convertir Logits en Probabilidades
       const expValues = Array.from(outputData).map((val) => Math.exp(val));
       const sumExp = expValues.reduce((a, b) => a + b, 0);
       const softmaxProbs = expValues.map((v) => v / sumExp);
@@ -76,51 +93,54 @@ export default function MnistPhase() {
     } catch (err) {
       console.error('Error durante inferencia:', err);
     }
+  }, [session, ort]);
+
+  // 4. Handlers para Dibujo (Mouse + Touch)
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
-    draw(e);
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
     const ctx = canvasRef.current?.getContext('2d');
-    if (ctx) ctx.beginPath();
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
+    const { x, y } = getCoordinates(e);
 
     ctx.lineWidth = 18;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = 'white';
 
     ctx.lineTo(x, y);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-
-    runInference(); 
   };
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setProbabilities(Array(10).fill(0));
-    setPredictedDigit(null);
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx) ctx.beginPath();
+    
+    // Ejecuta la inferencia SOLAMENTE al soltar el trazo para optimizar el rendimiento
+    runInference();
   };
 
   return (
@@ -137,6 +157,9 @@ export default function MnistPhase() {
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
             onMouseMove={draw}
+            onTouchStart={startDrawing}
+            onTouchEnd={stopDrawing}
+            onTouchMove={draw}
             className="border-2 border-zinc-700 rounded-xl cursor-crosshair bg-black touch-none shadow-inner"
           />
           <button
