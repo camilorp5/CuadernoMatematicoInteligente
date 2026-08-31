@@ -28,14 +28,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ./web # Sustituye por el nombre de tu carpeta
 
       - name: Build Next.js app
         run: npm run build
+        working-directory: ./web # Sustituye por el nombre de tu carpeta
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out # Carpeta por defecto que genera 'output: export'
+          path: ./web/out # Ruta a la carpeta de salida generada
 
       - name: Deploy to GitHub Pages
         id: deployment
