@@ -2,7 +2,7 @@ name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches: ["main"] # Cambia a "master" si esa es tu rama predeterminada
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -25,17 +25,20 @@ jobs:
         with:
           node-version: "20"
           cache: 'npm'
+          cache-dependency-path: './web/package-lock.json' # Cambia tu-subcarpeta
 
       - name: Install dependencies
         run: npm install
+        working-directory: ./web  # Cambia tu-subcarpeta
 
       - name: Build Next.js app
         run: npm run build
+        working-directory: ./web  # Cambia tu-subcarpeta
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out
+          path: ./web/out # Cambia tu-subcarpeta
 
       - name: Deploy to GitHub Pages
         id: deployment

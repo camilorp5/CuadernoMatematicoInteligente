@@ -1,5 +1,5 @@
 {
-  "name": "cuaderno-matematico-inteligente",
+  "name": "mnist-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^14.0.0",
-    "onnxruntime-web": "^1.17.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "next": "^14.2.33",
+    "onnxruntime-web": "^1.18.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
