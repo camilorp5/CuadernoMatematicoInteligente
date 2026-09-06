@@ -25,32 +25,66 @@ export default function MnistPhase() {
     setPredictedDigit(null);
   }, []);
 
-  // 2. Carga dinámica del modelo ONNX
-  useEffect(() => {
-    let active = true;
+  // 2. Carga dinámica del modelo ONNX con diagnóstico detallado
+    useEffect(() => {
+      let active = true;
 
-    async function loadModel() {
-      try {
-        const ortModule = await import('onnxruntime-web');
-        if (!active) return;
+      async function loadModel() {
+        console.group('🔍 [ONNX Diagnostics] Inicializando entorno');
+        
+        try {
+          console.log('1. Importando módulo onnxruntime-web...');
+          const ortModule = await import('onnxruntime-web');
+          setOrt(ortModule);
+          console.log('✔ Módulo cargado en memoria');
 
-        ortModule.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+          // Configurar ruta local (servida desde /public/onnx-wasm/)
+          ortModule.env.wasm.wasmPaths = '/onnx-wasm/';
+          ortModule.env.wasm.numThreads = 1; // 1 hilo para evitar SharedArrayBuffer issues
+          ortModule.env.wasm.simd = false;    // fallback seguro
 
-        setOrt(ortModule);
-        const sess = await ortModule.InferenceSession.create('/models/mnist_cnn.onnx');
-        if (active) setSession(sess);
-      } catch (e) {
-        console.error('Error al cargar el modelo ONNX:', e);
+          console.log('2. Configuración WASM aplicada:', {
+            wasmPaths: ortModule.env.wasm.wasmPaths,
+            numThreads: ortModule.env.wasm.numThreads,
+            simd: ortModule.env.wasm.simd
+          });
+
+          console.log('3. Verificando disponibilidad del modelo /models/mnist_cnn.onnx...');
+          const modelCheck = await fetch('/models/mnist_cnn.onnx');
+          console.log(`✔ Fetch del modelo: Status ${modelCheck.status} (${modelCheck.statusText})`);
+          
+          if (!modelCheck.ok) {
+            throw new Error(`No se pudo descargar /models/mnist_cnn.onnx. Código HTTP: ${modelCheck.status}`);
+          }
+
+          console.log('4. Creando sesión de inferencia en WebAssembly...');
+          const inferenceSession = await ortModule.InferenceSession.create('/models/mnist_cnn.onnx', {
+            executionProviders: ['wasm']
+          });
+
+          if (active) {
+            setSession(inferenceSession);
+            console.log('✔ Sesión creada exitosamente.');
+            console.log('Inputs del modelo:', inferenceSession.inputNames);
+            console.log('Outputs del modelo:', inferenceSession.outputNames);
+            console.log('🚀 [ONNX Diagnostics] Modelo listo para predecir');
+          }
+        } catch (error: any) {
+          console.error('❌ [ONNX Diagnostics] Fallo durante la carga:', error);
+          if (error?.message) console.error('Mensaje de error:', error.message);
+          if (error?.stack) console.error('Stack trace:', error.stack);
+        } finally {
+          console.groupEnd();
+        }
       }
-    }
 
-    loadModel();
-    clearCanvas();
+      loadModel();
+      clearCanvas();
 
-    return () => {
-      active = false;
-    };
-  }, [clearCanvas]);
+      return () => {
+        active = false;
+      };
+    }, [clearCanvas]);
 
   // 3. Procesamiento de imagen e Inferencia
   const runInference = useCallback(async () => {

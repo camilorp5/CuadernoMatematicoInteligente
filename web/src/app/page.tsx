@@ -4,39 +4,6 @@ import React, { useState, useEffect } from 'react';
 import MnistPhase from './phases/MnistPhase';
 // import MathSymbolsPhase from './phases/MathSymbolsPhase'; // Próxima fase
 
-export function MathCanvas() {
-  const [session, setSession] = useState<any>(null);
-
-  useEffect(() => {
-    async function loadModel() {
-      // Carga dinámica exclusiva en el cliente
-      const ort = await import('onnxruntime-web');
-
-      // Rutas WASM desde CDN público para evitar errores de webpack/import.meta
-      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
-
-      try {
-        const inferenceSession = await ort.InferenceSession.create('/models/mnist_cnn.onnx');
-        setSession(inferenceSession);
-        console.log("Modelo ONNX cargado exitosamente");
-      } catch (error) {
-        console.error("Error al cargar el modelo ONNX:", error);
-      }
-    }
-
-    loadModel();
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/40 rounded-xl border border-zinc-800">
-      {session ? (
-        <p className="text-emerald-400 font-mono text-sm">¡Modelo listo para la inferencia!</p>
-      ) : (
-        <p className="text-zinc-400 font-mono text-sm animate-pulse">Cargando red neuronal...</p>
-      )}
-    </div>
-  );
-}
 
 const PHASES = [
   { id: 'v1', title: 'Fase 1: MNIST Baseline', component: <MnistPhase /> },
