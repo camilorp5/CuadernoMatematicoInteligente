@@ -216,12 +216,28 @@ def train_pipeline(
         generate_confusion_matrix_artifact(all_labels, all_preds, class_names, cm_path)
         mlflow.log_artifact(str(cm_path))
 
+        # Reporte sin advertencias de división por cero
         report_path = ARTIFACTS_DIR / "classification_report.json"
-        report = classification_report(all_labels, all_preds, target_names=class_names, output_dict=True)
+        report = classification_report(
+            all_labels, 
+            all_preds, 
+            target_names=class_names, 
+            output_dict=True,
+            zero_division=0  # <--- silencia los warnings de precisión indefinida
+        )
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
         mlflow.log_artifact(str(report_path))
-        mlflow.pytorch.log_model(model, "pytorch_model")
+
+        # Guardar en MLflow compatible con PyTorch < 2.4 (evita 'pt2')
+        try:
+            mlflow.pytorch.log_model(
+                pytorch_model=model,
+                artifact_path="pytorch_model",
+                serialization_format="cloudpickle"  # <--- compatible con PyTorch 2.2
+            )
+        except Exception as e:
+            logger.warning(f"No se pudo registrar el modelo en MLflow, pero el archivo local está a salvo: {e}")
 
     return best_model_path
 
