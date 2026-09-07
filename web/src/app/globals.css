@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* En src/app/globals.css */
+@import 'katex/dist/katex.min.css';
 
 
 :root {

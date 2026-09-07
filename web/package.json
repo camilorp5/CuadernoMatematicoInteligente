@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "katex": "^0.18.7",
     "next": "^14.2.33",
     "onnxruntime-web": "^1.18.0",
     "react": "^18.3.1",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/katex": "^0.16.8",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
