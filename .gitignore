@@ -51,3 +51,5 @@ data/
 mlruns/
 
 /web/public/onnx-wasm/
+
+/packages/v2-expr-parser/kaggleCredentials
